@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import datetime
@@ -169,9 +170,13 @@ class NewsScraper:
         return "True" if match_found else "False"
 
     def download_images(self, image_url, counter):
-        response = requests.get(str(image_url), stream=True)
+        response = requests.get(image_url, stream=True)
         directory = f'images/img{counter}.png'
-
+        
+        # Verifica se o diretório 'images' existe e cria se não existir
+        if not os.path.exists('images'):
+            os.makedirs('images')
+        
         with open(directory, 'wb') as out_file:
             shutil.copyfileobj(response.raw, out_file)
         del response
