@@ -19,7 +19,7 @@ if __name__ == "__main__":
     news_category = config['news_category']
     months = config['months']
 
-    # instanciando a classe NewsScraper
+    # instantiating the NewsScraper class
     scraper = NewsScraper(logger)
 
     try:
@@ -31,13 +31,14 @@ if __name__ == "__main__":
         start_date = scraper.filter_by_date(months)
         articles_list = scraper.extract_article_info(search_phrase)
 
-        # filtrando artigos por data
-        filtered_articles = [article for article in articles_list if article['timestamp'] >= start_date]
+        # filtering articles by date
+        filtered_articles = [article for article in articles_list if
+                             (article['timestamp'], datetime.datetime) and article['timestamp'] >= start_date]
 
         time.sleep(2)
         scraper.save_to_excel(filtered_articles)
 
-        # fechar navegador
+        # close browser
         scraper.close_browser()
     finally:
-        logger.info("Fim do script")
+        scraper.logger.info("end of script")
