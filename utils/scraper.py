@@ -1,34 +1,21 @@
-import os
 import re
 import shutil
 import datetime
 import requests
 import pandas as pd
-from robocorp import browser
 from RPA.Browser.Selenium import Selenium
 from selenium.webdriver.common.by import By
 
 
 class NewsScraper:
-
     def __init__(self, logger):
-        #self.browser = Selenium()
-
-        browser.configure(
-            browser_engine="chromium",
-            screenshot="only-on-failure",
-            headless=True,  # Execute em modo headless para evitar problemas de interface
-        )
-
+        self.browser = Selenium()
         self.logger = logger
-        self.browser = browser.page()
 
     def open_website(self, url):
-        self.logger.info(f"Abrindo site: {url}")
         self.browser.open_available_browser(url)
 
     def search_news(self, search_phrase):
-        self.logger.info(f"Procurando notícias com a frase: {search_phrase}")
         # wait until the search button is present on the page
         self.browser.wait_until_element_is_visible("css:.SearchOverlay-search-button", timeout=15)
 
@@ -42,7 +29,6 @@ class NewsScraper:
         self.browser.click_element("css:.SearchOverlay-search-submit")
 
     def select_news_category(self, category):
-        self.logger.info(f"Selecionando categoria de notícias: {category}")
         # wait until the category list button is present on the page
         self.browser.wait_until_element_is_visible("css:.SearchFilter-heading", timeout=10)
 
@@ -58,7 +44,7 @@ class NewsScraper:
             category_text = self.browser.get_text(span_element).strip()
 
             if category_text == category:
-                self.logger.info(f"Selecionando categoria: {category}")
+                self.logger.info(f"Selecting category: {category}")
 
                 # click on the chosen category
                 checkbox_element = self.browser.find_element("css:input[type='checkbox']", parent=item)
@@ -68,11 +54,10 @@ class NewsScraper:
     def filter_by_date(self, months):
         current_date = datetime.datetime.now()
         start_date = current_date - datetime.timedelta(days=30 * months)
-        self.logger.info(f"Filtrando notícias de {start_date} até {current_date}")
+        self.logger.info(f"Filtering news from {start_date} to {current_date}")
         return start_date
 
     def extract_article_info(self, search_phrase):
-        self.logger.info("Extraindo informações dos artigos")
         articles = self.browser.find_elements("css:.PageList-items-item")
 
         article_info = []
@@ -80,6 +65,7 @@ class NewsScraper:
         counter = 0
 
         for article in articles:
+
             try:
                 # Title
                 try:
@@ -88,7 +74,7 @@ class NewsScraper:
                     title = title_element.text
                 except Exception as e:
                     title = None
-                    error_messages.append(f"Erro ao extrair o título: {e}")
+                    error_messages.append(f"Error extracting title: {e}")
 
                 # Description
                 try:
@@ -97,7 +83,7 @@ class NewsScraper:
                     description = description_element.text
                 except Exception as e:
                     description = None
-                    error_messages.append(f"Erro ao extrair a descrição: {e}")
+                    error_messages.append(f"Error extracting description: {e}")
 
                 # Timestamp
                 try:
@@ -106,7 +92,7 @@ class NewsScraper:
                     timestamp = timestamp_element.get_attribute("data-timestamp")
                 except Exception as e:
                     timestamp = None
-                    error_messages.append(f"Erro ao extrair o timestamp: {e}")
+                    error_messages.append(f"Error extracting timestamp: {e}")
 
                 # Image
                 try:
@@ -114,7 +100,7 @@ class NewsScraper:
                     image_url = image_element.get_attribute("src")
                 except Exception as e:
                     image_url = None
-                    self.logger.info(f"Erro ao extrair a URL da imagem: {e}")
+                    self.logger.info(f"Error extracting image URL: {e}")
 
                 if timestamp:
                     counter = counter + 1
@@ -134,22 +120,22 @@ class NewsScraper:
                             "image_directory": image_directory
                         })
                     except ValueError as e:
-                        self.logger.info(f"Timestamp inválido: {timestamp}, erro: {e}")
+                        self.logger.info(f"Invalid timestamp: {timestamp}, error: {e}")
             except Exception as e:
-                self.logger.info(f"Erro ao extrair informações do artigo: {e}")
+                self.logger.info(f"Error extracting article info: {e}")
         return article_info
 
     def convert_timestamp_to_american_date(self, timestamp):
         try:
             timestamp = int(timestamp)
-            # dividindo por 1000 para converter de milissegundos para segundos
+            # dividing by 1000 to convert from milliseconds to seconds
             timestamp_segundos = timestamp / 1000
             data_hora = datetime.datetime.fromtimestamp(timestamp_segundos)
 
             print("Data e hora legível:", data_hora)
             return data_hora
         except Exception as e:
-            self.logger.info(f"Erro ao converter timestamp: {e}")
+            self.logger.info(f"Error extracting article info: {e}")
 
     def count_phrases(self, text, phrase):
         return text.lower().count(phrase.lower())
@@ -157,26 +143,22 @@ class NewsScraper:
     def save_to_excel(self, article_info, filename='articles.xlsx'):
         df = pd.DataFrame(article_info)
         df.to_excel(filename, index=False)
-        self.logger.info(f"Dados salvos em {filename}")
+        self.logger.info(f"Data saved to {filename}")
 
     def contains_money(self, text):
-        # Define um padrão para corresponder a valores monetários em vários formatos
+        # Define a pattern to match monetary amounts in various formats
         pattern = r'\$\d+(\.\d{1,2})?|\d+ dollars|\d+ USD'
 
-        # Use re.search para encontrar uma correspondência no texto e retornar "True" se uma correspondência for encontrada, caso contrário "False"
+        # Use re.search to find a match in the text and return "True" if a match is found, otherwise "False"
         match_found = bool(re.search(pattern, text))
 
-        # Retornar explicitamente "True" ou "False" como strings
+        # Explicitly return "True" or "False" as strings
         return "True" if match_found else "False"
 
     def download_images(self, image_url, counter):
-        response = requests.get(image_url, stream=True)
+        response = requests.get(str(image_url), stream=True)
         directory = f'images/img{counter}.png'
-        
-        # Verifica se o diretório 'images' existe e cria se não existir
-        if not os.path.exists('images'):
-            os.makedirs('images')
-        
+
         with open(directory, 'wb') as out_file:
             shutil.copyfileobj(response.raw, out_file)
         del response
