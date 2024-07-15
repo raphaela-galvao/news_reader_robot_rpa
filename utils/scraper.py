@@ -17,7 +17,7 @@ class NewsScraper:
 
     def search_news(self, search_phrase):
         # wait until the search button is present on the page
-        self.browser.wait_until_element_is_visible("css:.SearchOverlay-search-button", timeout=15)
+        self.browser.wait_until_element_is_visible("css:.SearchOverlay-search-button", timeout=40)
 
         # click on the search button
         self.browser.click_element("css:.SearchOverlay-search-button")
