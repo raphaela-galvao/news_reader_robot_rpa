@@ -27,6 +27,7 @@ def minimal_task():
 
     try:
         scraper.open_website("https://apnews.com/")
+        time.sleep(12)
         scraper.search_news(search_phrase)
         scraper.select_news_category(news_category)
         time.sleep(5)
